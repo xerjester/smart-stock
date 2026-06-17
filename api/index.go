@@ -2,28 +2,31 @@ package api
 
 import (
 	"net/http"
+	
+	// เปลี่ยนเป็น path จริงของคุณ
+	"smart-stock/configs"
+	"smart-stock/controllers" 
+
 	"github.com/gin-gonic/gin"
 )
 
 var app *gin.Engine
 
 func init() {
-	// สร้าง Gin instance
-	app = gin.Default()
+	configs.ConnectDatabase()
 
-	// สร้าง Route Group สำหรับ API
+	app = gin.Default()
 	api := app.Group("/api")
 	{
 		api.GET("/ping", func(c *gin.Context) {
-			c.JSON(http.StatusOK, gin.H{"message": "pong! ระบบสต๊อกพร้อมใช้งาน"})
+			c.JSON(http.StatusOK, gin.H{"message": "API พร้อมใช้งาน!"})
 		})
-		
-		// TODO: เพิ่ม Route สำหรับรับเข้า-เบิกจ่ายตรงนี้
-		// api.POST("/items", controllers.CreateItem)
+
+		// เพิ่ม Endpoint สำหรับเบิกของตรงนี้
+		api.POST("/dispense", controllers.DispenseChemical)
 	}
 }
 
-// Handler คือฟังก์ชันบังคับที่ Vercel จะเรียกใช้
 func Handler(w http.ResponseWriter, r *http.Request) {
 	app.ServeHTTP(w, r)
 }
