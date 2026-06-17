@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 
-	"smart-stock/models" // เรียกใช้ models จากโปรเจกต์ของเรา
+	"smart-stock/models" // อ้างอิงโฟลเดอร์ models ของโปรเจกต์
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -12,18 +12,19 @@ import (
 var DB *gorm.DB
 
 func ConnectDatabase() {
-	// ดึง URL จาก Environment Variable ของ Vercel (หรือเครื่องเราตอนรันทดสอบ)
+	// ดึง Connection String จาก Environment Variable
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
-		log.Fatal("DATABASE_URL is not set")
+		log.Println("⚠️ DATABASE_URL is not set")
+		return
 	}
 
 	database, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		log.Fatal("Failed to connect to Supabase: ", err)
+		log.Fatal("❌ Failed to connect to Supabase: ", err)
 	}
 
-	// สร้างตารางอัตโนมัติตาม struct ในโฟลเดอร์ models
+	// สร้างตารางใน Supabase อัตโนมัติ
 	err = database.AutoMigrate(
 		&models.User{},
 		&models.Chemical{},
@@ -31,9 +32,9 @@ func ConnectDatabase() {
 		&models.Transaction{},
 	)
 	if err != nil {
-		log.Fatal("Migration failed: ", err)
+		log.Fatal("❌ Migration failed: ", err)
 	}
 
 	DB = database
-	log.Println("Supabase connected successfully!")
+	log.Println("✅ Supabase connected & Migrated successfully!")
 }
