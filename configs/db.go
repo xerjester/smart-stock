@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"smart-stock/models" // อ้างอิงโฟลเดอร์ models ของโปรเจกต์
+
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -13,7 +14,7 @@ var DB *gorm.DB
 
 func ConnectDatabase() {
 	// ดึง Connection String จาก Environment Variable
-	dsn := os.Getenv("DATABASE_URL")
+	dsn := os.Getenv("SUPABASE_URL")
 	if dsn == "" {
 		log.Println("⚠️ DATABASE_URL is not set")
 		return
