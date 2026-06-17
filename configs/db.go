@@ -14,7 +14,7 @@ var DB *gorm.DB
 
 func ConnectDatabase() {
 	// ดึง Connection String จาก Environment Variable
-	dsn := os.Getenv("SUPABASE_URL")
+	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
 		log.Println("⚠️ DATABASE_URL is not set")
 		return
