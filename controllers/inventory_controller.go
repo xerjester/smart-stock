@@ -76,3 +76,47 @@ func ReceiveChemical(c *gin.Context) {
 		"lot_id":  newLot.ID,
 	})
 }
+
+// โครงสร้างสำหรับส่งข้อมูลกลับไปให้หน้า Dashboard
+type ChemicalBalanceResponse struct {
+	ChemicalID   string  `json:"chemical_id"`
+	ChemicalCode string  `json:"chemical_code"`
+	Name         string  `json:"name"`
+	TotalRemain  float64 `json:"total_remain"`
+	BaseUnit     string  `json:"base_unit"`
+}
+
+// ฟังก์ชันดึงสรุปยอดคงเหลือของสารเคมีแต่ละชนิด
+func GetStockBalance(c *gin.Context) {
+	// ป้องกันเคส Vercel Cold Start แล้วลืมต่อฐานข้อมูล
+	if err := configs.ConnectDatabase(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "DB Connection Failed"})
+		return
+	}
+
+	var balances []ChemicalBalanceResponse
+
+	// เขียน Query เพื่อ Join ตาราง Chemicals เข้ากับ InventoryLots 
+	// และ SUM ยอด QuantityRemain เฉพาะล็อตที่สถานะยังเป็น ACTIVE
+	err := configs.DB.Table("chemicals").
+		Select(`
+			chemicals.id as chemical_id, 
+			chemicals.chemical_code, 
+			chemicals.name, 
+			chemicals.base_unit, 
+			COALESCE(SUM(inventory_lots.quantity_remain), 0) as total_remain
+		`).
+		Joins("LEFT JOIN inventory_lots ON chemicals.id = inventory_lots.chemical_id AND inventory_lots.status = 'ACTIVE'").
+		Group("chemicals.id").
+		Scan(&balances).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ดึงข้อมูลสรุปยอดล้มเหลว", "details": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "ดึงข้อมูลสต๊อกสำเร็จ",
+		"data":    balances,
+	})
+}

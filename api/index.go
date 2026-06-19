@@ -33,6 +33,7 @@ func init() {
 		api.POST("/chemicals", controllers.CreateChemical) // รับข้อมูลเพื่อสร้างใหม่ (POST)
 		api.GET("/chemicals", controllers.GetChemicals)    // ดึงข้อมูลทั้งหมด (GET)
 		api.POST("/inventory/receive", controllers.ReceiveChemical)
+		api.GET("/inventory/balance", controllers.GetStockBalance)
 	}
 }
 
