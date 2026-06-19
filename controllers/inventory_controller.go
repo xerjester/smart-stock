@@ -106,7 +106,7 @@ func GetStockBalance(c *gin.Context) {
 			chemicals.base_unit, 
 			COALESCE(SUM(inventory_lots.quantity_remain), 0) as total_remain
 		`).
-		Joins("LEFT JOIN inventory_lots ON chemicals.id = inventory_lots.chemical_id AND inventory_lots.status = 'ACTIVE'").
+		Joins("LEFT JOIN inventory_lots ON chemicals.id::text = inventory_lots.chemical_id AND inventory_lots.status = 'ACTIVE'").
 		Group("chemicals.id").
 		Scan(&balances).Error
 
