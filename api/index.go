@@ -34,6 +34,7 @@ func init() {
 		api.GET("/chemicals", controllers.GetChemicals)    // ดึงข้อมูลทั้งหมด (GET)
 		api.POST("/inventory/receive", controllers.ReceiveChemical)
 		api.GET("/inventory/balance", controllers.GetStockBalance)
+		api.POST("/inventory/dispense", controllers.DispenseChemical)
 	}
 }
 

@@ -120,3 +120,110 @@ func GetStockBalance(c *gin.Context) {
 		"data":    balances,
 	})
 }
+// โครงสร้างสำหรับรับข้อมูลการเบิก
+type DispenseRequest struct {
+	ChemicalID string  `json:"chemical_id" binding:"required"`
+	Quantity   float64 `json:"quantity" binding:"required,gt=0"`
+	UserID     string  `json:"user_id" binding:"required"`
+}
+
+// ฟังก์ชันเบิกจ่ายแบบ FEFO
+func DispenseChemical(c *gin.Context) {
+	if err := configs.ConnectDatabase(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "DB Connection Failed"})
+		return
+	}
+
+	var req DispenseRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ข้อมูลไม่ถูกต้อง"})
+		return
+	}
+
+	tx := configs.DB.Begin() // เริ่ม Transaction ถ้าพังกลางทางจะได้ยกเลิกทั้งหมด
+
+	// 1. ดึงล็อตทั้งหมดของสารเคมีนี้ ที่ยังมีของเหลือ (ACTIVE) โดยเรียงจากวันหมดอายุใกล้สุดไปไกลสุด
+	var lots []models.InventoryLot
+	if err := tx.Where("chemical_id = ? AND status = 'ACTIVE' AND quantity_remain > 0", req.ChemicalID).
+		Order("expiration_date ASC").
+		Find(&lots).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ไม่สามารถดึงข้อมูลล็อตได้"})
+		return
+	}
+
+	// 2. เช็กว่าสต๊อกรวมมีพอให้เบิกไหม
+	var totalAvailable float64
+	for _, lot := range lots {
+		totalAvailable += lot.QuantityRemain
+	}
+
+	if req.Quantity > totalAvailable {
+		tx.Rollback()
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "สต๊อกไม่เพียงพอ",
+			"available": totalAvailable,
+			"requested": req.Quantity,
+		})
+		return
+	}
+
+	// 3. เริ่มกระบวนการตัดสต๊อก (FEFO)
+	remainToDispense := req.Quantity
+	var dispensedDetails []map[string]interface{}
+
+	for _, lot := range lots {
+		if remainToDispense <= 0 {
+			break // เบิกครบแล้ว ออกจากลูป
+		}
+
+		var deductAmount float64
+
+		if lot.QuantityRemain >= remainToDispense {
+			// ล็อตนี้มีของพอให้ตัดจนครบ
+			deductAmount = remainToDispense
+			lot.QuantityRemain -= deductAmount
+			remainToDispense = 0
+		} else {
+			// ล็อตนี้มีของไม่พอ ต้องตัดจนเกลี้ยง (0) แล้วไปเอาล็อตถัดไป
+			deductAmount = lot.QuantityRemain
+			remainToDispense -= lot.QuantityRemain
+			lot.QuantityRemain = 0
+			lot.Status = "EMPTY" // เปลี่ยนสถานะล็อตว่าของหมดแล้ว
+		}
+
+		// อัปเดตข้อมูลล็อตในฐานข้อมูล
+		if err := tx.Save(&lot).Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "อัปเดตสต๊อกล้มเหลว"})
+			return
+		}
+
+		// บันทึกประวัติการเบิก (OUT) ลงตาราง Transaction
+		history := models.Transaction{
+			LotID:           lot.ID,
+			UserID:          req.UserID,
+			TransactionType: "OUT",
+			Quantity:        deductAmount,
+			Remarks:         "เบิกใช้งาน",
+		}
+		if err := tx.Create(&history).Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "บันทึกประวัติล้มเหลว"})
+			return
+		}
+
+		// เก็บประวัติไว้สรุปส่งกลับไปให้หน้าเว็บดู
+		dispensedDetails = append(dispensedDetails, map[string]interface{}{
+			"batch_number": lot.BatchNumber,
+			"deducted":     deductAmount,
+		})
+	}
+
+	tx.Commit() // บันทึกทุกอย่างลง Database
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "เบิกจ่ายสำเร็จ",
+		"dispensed_details": dispensedDetails,
+	})
+}
