@@ -2,48 +2,56 @@ package controllers
 
 import (
 	"net/http"
-
 	"smart-stock/configs"
 	"smart-stock/models"
 
 	"github.com/gin-gonic/gin"
 )
 
-// 1. ฟังก์ชันเพิ่มสารเคมีใหม่ (Create)
 func CreateChemical(c *gin.Context) {
-	// เพิ่มตัวเช็กว่า DB พร้อมใช้งานไหม
-	if configs.DB == nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database connection not initialized"})
+	// 1. ลองเชื่อมต่อ Database แบบ On-Demand และดึง Error มาโชว์
+	if err := configs.ConnectDatabase(); err != nil {
+		// ถ้าพัง โชว์ Error ตรงๆ ไปเลย
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "DB Connection Failed",
+			"details": err.Error(),
+		})
 		return
 	}
 
+	// 2. รับข้อมูล JSON
 	var input models.Chemical
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "รูปแบบข้อมูลไม่ถูกต้อง"})
 		return
 	}
 
-	// ตอนนี้บรรทัดนี้จะไม่พังแล้วเพราะเช็ก DB แล้ว
+	// 3. เซฟลง Database
 	if err := configs.DB.Create(&input).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Save failed"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ไม่สามารถบันทึกข้อมูลได้"})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": "Success"})
+	c.JSON(http.StatusCreated, gin.H{
+		"message": "เพิ่มสารเคมีใหม่สำเร็จ",
+		"data":    input,
+	})
 }
 
-// 2. ฟังก์ชันดึงรายการสารเคมีทั้งหมด (Read)
 func GetChemicals(c *gin.Context) {
-	var chemicals []models.Chemical
+	if err := configs.ConnectDatabase(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "DB Connection Failed",
+			"details": err.Error(),
+		})
+		return
+	}
 
-	// สั่ง GORM ให้ไปค้นหาข้อมูลทั้งหมดในตาราง Chemical
+	var chemicals []models.Chemical
 	if err := configs.DB.Find(&chemicals).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "ดึงข้อมูลล้มเหลว"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "ดึงข้อมูลสำเร็จ",
-		"data":    chemicals,
-	})
+	c.JSON(http.StatusOK, gin.H{"data": chemicals})
 }

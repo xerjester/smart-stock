@@ -1,45 +1,43 @@
 package configs
 
 import (
-	"log"
+	"errors"
+	"fmt"
 	"os"
-	"smart-stock/models"
+
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
 var DB *gorm.DB
 
-func ConnectDatabase() {
-	// ป้องกันไม่ให้ต่อซ้ำถ้า DB มีค่าอยู่แล้ว
+// เปลี่ยนให้มีการ return error ออกมา
+func ConnectDatabase() error {
+	// ถ้าต่อแล้วก็ผ่านไปเลย
 	if DB != nil {
-		return
+		return nil
 	}
 
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
-		log.Println("❌ DATABASE_URL is not set")
-		return
+		return errors.New("DATABASE_URL is empty in this environment")
 	}
 
 	database, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		// เปลี่ยนจาก log.Fatal เป็น log.Println เพื่อให้ระบบไม่ดับ
-		log.Println("❌ Failed to connect to Supabase: ", err)
-		return
+		return fmt.Errorf("GORM Connection error: %v", err)
 	}
 
-	err = database.AutoMigrate(
-		&models.User{},
-		&models.Chemical{},
-		&models.InventoryLot{},
-		&models.Transaction{},
-	)
-	if err != nil {
-		log.Println("❌ Migration failed: ", err)
-		return
-	}
+	// (ตอนนี้ตารางถูกสร้างไปแล้ว เราเลยคอมเมนต์บรรทัด Migrate ทิ้งไปก่อนเพื่อความเร็ว)
+	/*
+		err = database.AutoMigrate(
+			&models.User{},
+			&models.Chemical{},
+			&models.InventoryLot{},
+			&models.Transaction{},
+		)
+	*/
 
 	DB = database
-	log.Println("✅ Supabase connected & Migrated successfully!")
+	return nil
 }
