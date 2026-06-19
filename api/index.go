@@ -2,40 +2,34 @@ package api
 
 import (
 	"net/http"
+	"smart-stock/controllers"
 
-	"smart-stock/configs"
-	"smart-stock/controllers" // อย่าลืม import controllers
-
+	"github.com/gin-contrib/cors" // 1. อย่าลืม Import ตรงนี้
 	"github.com/gin-gonic/gin"
 )
 
 var app *gin.Engine
 
 func init() {
-	configs.ConnectDatabase()
+	app = gin.New()
 
-	app = gin.Default()
-
-	app.GET("/", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"status":  "online",
-			"project": "SMART-STOCK API",
-		})
-	})
+	// 2. --- เพิ่มตั้งค่า CORS ตรงนี้ (ต้องอยู่ก่อน api := app.Group) ---
+	app.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:5173"}, // อนุญาตให้ React พอร์ต 5173 เข้าถึงได้
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+	}))
+	// ----------------------------------------------------
 
 	api := app.Group("/api")
-	{
-		api.GET("/ping", func(c *gin.Context) {
-			c.JSON(http.StatusOK, gin.H{"message": "pong! ระบบสต๊อกพร้อมใช้งาน"})
-		})
 
-		// --- เพิ่ม 2 เส้นทางใหม่ตรงนี้ ---
-		api.POST("/chemicals", controllers.CreateChemical) // รับข้อมูลเพื่อสร้างใหม่ (POST)
-		api.GET("/chemicals", controllers.GetChemicals)    // ดึงข้อมูลทั้งหมด (GET)
-		api.POST("/inventory/receive", controllers.ReceiveChemical)
-		api.GET("/inventory/balance", controllers.GetStockBalance)
-		api.POST("/inventory/dispense", controllers.DispenseChemical)
-	}
+	api.POST("/chemicals", controllers.CreateChemical)
+	api.GET("/chemicals", controllers.GetChemicals)
+	api.POST("/inventory/receive", controllers.ReceiveChemical)
+	api.GET("/inventory/balance", controllers.GetStockBalance)
+	api.POST("/inventory/dispense", controllers.DispenseChemical)
 }
 
 func Handler(w http.ResponseWriter, r *http.Request) {
