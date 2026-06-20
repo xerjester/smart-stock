@@ -308,7 +308,8 @@ func GetTransactionHistory(c *gin.Context) {
 	`
 
 	if err := configs.DB.Raw(query).Scan(&results).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "ดึงข้อมูลประวัติล้มเหลว"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ดึงข้อมูลประวัติล้มเหลว",
+		"details": err.Error()})
 		return
 	}
 
