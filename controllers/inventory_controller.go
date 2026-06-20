@@ -273,7 +273,7 @@ func GetInventoryLots(c *gin.Context) {
 // โครงสร้างสำหรับส่งข้อมูลประวัติกลับไปหน้าเว็บ
 type TransactionHistoryResponse struct {
 	TransactionDate string  `json:"transaction_date"`
-	TransactionType string  `json:"transaction_type"` // IN หรือ OUT
+	TransactionType string  `json:"transaction_type"`
 	ChemicalCode    string  `json:"chemical_code"`
 	Name            string  `json:"name"`
 	BatchNumber     string  `json:"batch_number"`
@@ -293,7 +293,7 @@ func GetTransactionHistory(c *gin.Context) {
 	// ใช้ SQL JOIN ดึงประวัติข้าม 3 ตาราง: transactions -> inventory_lots -> chemicals
 	query := `
 		SELECT 
-			TO_CHAR(t.created_at, 'YYYY-MM-DD HH24:MI:SS') as transaction_date,
+			TO_CHAR(t.transaction_date, 'YYYY-MM-DD HH24:MI:SS') as transaction_date,
 			t.transaction_type,
 			c.chemical_code,
 			c.name,
@@ -304,12 +304,12 @@ func GetTransactionHistory(c *gin.Context) {
 		FROM transactions t
 		JOIN inventory_lots i ON t.lot_id::text = i.id::text
 		JOIN chemicals c ON i.chemical_id::text = c.id::text
-		ORDER BY t.created_at DESC
+		ORDER BY t.transaction_date DESC
 	`
 
 	if err := configs.DB.Raw(query).Scan(&results).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "ดึงข้อมูลประวัติล้มเหลว",
-		"details": err.Error()})
+			"details": err.Error()})
 		return
 	}
 
