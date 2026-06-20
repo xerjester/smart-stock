@@ -8,13 +8,15 @@ import (
 
 // User ข้อมูลบุคลากรและการจัดการสิทธิ์
 type User struct {
-	ID         string `gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
-	FullName   string `gorm:"not null"`
-	Department string
-	Role       string `gorm:"not null;default:'USER'"` // SUPER_ADMIN, ADMIN, APPROVER, USER
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
-	DeletedAt  gorm.DeletedAt `gorm:"index"`
+	ID         string         `gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
+	FullName   string         `gorm:"not null" json:"full_name"`
+	Department string         `json:"department"`
+	Role       string         `gorm:"not null;default:'USER'"` // SUPER_ADMIN, ADMIN, APPROVER, USER
+	Username   string         `gorm:"unique;not null" json:"username"` 
+	Password   string         `gorm:"not null" json:"-"`               
+	CreatedAt  time.Time      `json:"created_at"`
+	UpdatedAt  time.Time      `json:"updated_at"`
+	DeletedAt  gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
 // Chemical ตารางข้อมูลสารเคมีหลัก

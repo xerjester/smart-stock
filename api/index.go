@@ -32,6 +32,8 @@ func init() {
 	api.POST("/inventory/dispense", controllers.DispenseChemical)
 	api.GET("/inventory/lots", controllers.GetInventoryLots)
 	api.GET("/inventory/history", controllers.GetTransactionHistory)
+	api.POST("/auth/register", controllers.Register)
+	api.POST("/auth/login", controllers.Login)
 }
 
 func Handler(w http.ResponseWriter, r *http.Request) {
