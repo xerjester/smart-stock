@@ -96,7 +96,7 @@ func GetStockBalance(c *gin.Context) {
 
 	var balances []ChemicalBalanceResponse
 
-	// เขียน Query เพื่อ Join ตาราง Chemicals เข้ากับ InventoryLots 
+	// เขียน Query เพื่อ Join ตาราง Chemicals เข้ากับ InventoryLots
 	// และ SUM ยอด QuantityRemain เฉพาะล็อตที่สถานะยังเป็น ACTIVE
 	err := configs.DB.Table("chemicals").
 		Select(`
@@ -120,6 +120,7 @@ func GetStockBalance(c *gin.Context) {
 		"data":    balances,
 	})
 }
+
 // โครงสร้างสำหรับรับข้อมูลการเบิก
 type DispenseRequest struct {
 	ChemicalID string  `json:"chemical_id" binding:"required"`
@@ -161,7 +162,7 @@ func DispenseChemical(c *gin.Context) {
 	if req.Quantity > totalAvailable {
 		tx.Rollback()
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "สต๊อกไม่เพียงพอ",
+			"error":     "สต๊อกไม่เพียงพอ",
 			"available": totalAvailable,
 			"requested": req.Quantity,
 		})
@@ -223,7 +224,7 @@ func DispenseChemical(c *gin.Context) {
 	tx.Commit() // บันทึกทุกอย่างลง Database
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "เบิกจ่ายสำเร็จ",
+		"message":           "เบิกจ่ายสำเร็จ",
 		"dispensed_details": dispensedDetails,
 	})
 }
@@ -260,9 +261,54 @@ func GetInventoryLots(c *gin.Context) {
 		WHERE i.quantity_remain > 0
 		ORDER BY c.chemical_code ASC, i.expiration_date ASC
 	`
-	
+
 	if err := configs.DB.Raw(query).Scan(&results).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "ดึงข้อมูลล้มเหลว"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": results})
+}
+
+// โครงสร้างสำหรับส่งข้อมูลประวัติกลับไปหน้าเว็บ
+type TransactionHistoryResponse struct {
+	TransactionDate string  `json:"transaction_date"`
+	TransactionType string  `json:"transaction_type"` // IN หรือ OUT
+	ChemicalCode    string  `json:"chemical_code"`
+	Name            string  `json:"name"`
+	BatchNumber     string  `json:"batch_number"`
+	Quantity        float64 `json:"quantity"`
+	Remarks         string  `json:"remarks"`
+	UserID          string  `json:"user_id"`
+}
+
+// ฟังก์ชันดึงประวัติการเคลื่อนไหว
+func GetTransactionHistory(c *gin.Context) {
+	if err := configs.ConnectDatabase(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "DB Connection Failed"})
+		return
+	}
+
+	var results []TransactionHistoryResponse
+	// ใช้ SQL JOIN ดึงประวัติข้าม 3 ตาราง: transactions -> inventory_lots -> chemicals
+	query := `
+		SELECT 
+			TO_CHAR(t.created_at, 'YYYY-MM-DD HH24:MI:SS') as transaction_date,
+			t.transaction_type,
+			c.chemical_code,
+			c.name,
+			i.batch_number,
+			t.quantity,
+			t.remarks,
+			t.user_id
+		FROM transactions t
+		JOIN inventory_lots i ON t.lot_id = i.id
+		JOIN chemicals c ON i.chemical_id = c.id
+		ORDER BY t.created_at DESC
+	`
+
+	if err := configs.DB.Raw(query).Scan(&results).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ดึงข้อมูลประวัติล้มเหลว"})
 		return
 	}
 
