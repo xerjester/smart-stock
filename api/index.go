@@ -3,8 +3,8 @@ package api
 import (
 	"net/http"
 	"smart-stock/controllers"
-
-	"github.com/gin-contrib/cors" // 1. อย่าลืม Import ตรงนี้
+	"smart-stock/middlewares"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -25,15 +25,20 @@ func init() {
 
 	api := app.Group("/api")
 
-	api.POST("/chemicals", controllers.CreateChemical)
-	api.GET("/chemicals", controllers.GetChemicals)
-	api.POST("/inventory/receive", controllers.ReceiveChemical)
-	api.GET("/inventory/balance", controllers.GetStockBalance)
-	api.POST("/inventory/dispense", controllers.DispenseChemical)
-	api.GET("/inventory/lots", controllers.GetInventoryLots)
-	api.GET("/inventory/history", controllers.GetTransactionHistory)
 	api.POST("/auth/register", controllers.Register)
 	api.POST("/auth/login", controllers.Login)
+
+	protected := api.Group("/")
+	protected.Use(middlewares.JWTAuth())
+	{
+		protected.POST("/chemicals", controllers.CreateChemical)
+		protected.GET("/chemicals", controllers.GetChemicals)
+		protected.POST("/inventory/receive", controllers.ReceiveChemical)
+		protected.GET("/inventory/balance", controllers.GetStockBalance)
+		protected.POST("/inventory/dispense", controllers.DispenseChemical)
+		protected.GET("/inventory/lots", controllers.GetInventoryLots)
+		protected.GET("/inventory/history", controllers.GetTransactionHistory)
+	}
 }
 
 func Handler(w http.ResponseWriter, r *http.Request) {
