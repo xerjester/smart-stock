@@ -29,6 +29,10 @@ type LoginRequest struct {
 
 // 1. API สมัครสมาชิก
 func Register(c *gin.Context) {
+	if err := configs.ConnectDatabase(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "DB Connection Failed"})
+		return
+	}
 	var req RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "กรุณากรอกข้อมูลให้ครบถ้วน (ต้องมี Username, Password, FullName)"})
@@ -59,6 +63,10 @@ func Register(c *gin.Context) {
 
 // 2. API ล็อกอิน
 func Login(c *gin.Context) {
+	if err := configs.ConnectDatabase(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "DB Connection Failed"})
+		return
+	}
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "กรุณากรอก Username และ Password"})

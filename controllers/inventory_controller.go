@@ -257,7 +257,7 @@ func GetInventoryLots(c *gin.Context) {
 			c.base_unit, 
 			TO_CHAR(i.expiration_date, 'YYYY-MM-DD') as expiration_date
 		FROM inventory_lots i
-		JOIN chemicals c ON i.chemical_id = c.id
+		JOIN chemicals c ON i.chemical_id = c.id::text
 		WHERE i.quantity_remain > 0
 		ORDER BY c.chemical_code ASC, i.expiration_date ASC
 	`
@@ -302,8 +302,8 @@ func GetTransactionHistory(c *gin.Context) {
 			t.remarks,
 			t.user_id
 		FROM transactions t
-		JOIN inventory_lots i ON t.lot_id = i.id
-		JOIN chemicals c ON i.chemical_id = c.id
+		JOIN inventory_lots i ON t.lot_id = i.id::text
+		JOIN chemicals c ON i.chemical_id = c.id::text
 		ORDER BY t.created_at DESC
 	`
 
