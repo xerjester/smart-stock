@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"smart-stock/models"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -25,7 +26,7 @@ func ConnectDatabase() error {
 
 	database, err := gorm.Open(postgres.New(postgres.Config{
 		DSN:                  dsn,
-		PreferSimpleProtocol: true, // 👈 พระเอกของเรา: ปิด Prepared Statement เพื่อให้คุยกับ Supabase Pooler ได้
+		PreferSimpleProtocol: true, // ปิด Prepared Statement เพื่อให้คุยกับ Supabase Pooler ได้
 	}), &gorm.Config{})
 
 	if err != nil {
@@ -33,14 +34,13 @@ func ConnectDatabase() error {
 	}
 
 	// (ตอนนี้ตารางถูกสร้างไปแล้ว เราเลยคอมเมนต์บรรทัด Migrate ทิ้งไปก่อนเพื่อความเร็ว)
-	/*
-		err = database.AutoMigrate(
-			&models.User{},
-			&models.Chemical{},
-			&models.InventoryLot{},
-			&models.Transaction{},
-		)
-	*/
+	err = database.AutoMigrate(
+		&models.User{},
+		&models.Chemical{},
+		&models.InventoryLot{},
+		&models.Transaction{},
+	)
+
 
 	DB = database
 	return nil
