@@ -302,8 +302,8 @@ func GetTransactionHistory(c *gin.Context) {
 			t.remarks,
 			t.user_id
 		FROM transactions t
-		JOIN inventory_lots i ON t.lot_id = i.id::text
-		JOIN chemicals c ON i.chemical_id = c.id::text
+		JOIN inventory_lots i ON t.lot_id::text = i.id::text
+		JOIN chemicals c ON i.chemical_id::text = c.id::text
 		ORDER BY t.created_at DESC
 	`
 
