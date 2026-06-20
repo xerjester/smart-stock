@@ -15,7 +15,7 @@ func init() {
 
 	// 2. --- เพิ่มตั้งค่า CORS ตรงนี้ (ต้องอยู่ก่อน api := app.Group) ---
 	app.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173"}, // อนุญาตให้ React พอร์ต 5173 เข้าถึงได้
+		AllowOrigins:     []string{"http://localhost:5173","https://smart-stock-ui.vercel.app"}, // อนุญาตให้ React พอร์ต 5173 เข้าถึงได้
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
