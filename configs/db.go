@@ -23,7 +23,11 @@ func ConnectDatabase() error {
 		return errors.New("DATABASE_URL is empty in this environment")
 	}
 
-	database, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	database, err := gorm.Open(postgres.New(postgres.Config{
+		DSN:                  dsn,
+		PreferSimpleProtocol: true, // 👈 พระเอกของเรา: ปิด Prepared Statement เพื่อให้คุยกับ Supabase Pooler ได้
+	}), &gorm.Config{})
+
 	if err != nil {
 		return fmt.Errorf("GORM Connection error: %v", err)
 	}
