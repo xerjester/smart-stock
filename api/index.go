@@ -30,6 +30,7 @@ func init() {
 	api.POST("/inventory/receive", controllers.ReceiveChemical)
 	api.GET("/inventory/balance", controllers.GetStockBalance)
 	api.POST("/inventory/dispense", controllers.DispenseChemical)
+	api.GET("/inventory/lots", controllers.GetInventoryLots)
 }
 
 func Handler(w http.ResponseWriter, r *http.Request) {

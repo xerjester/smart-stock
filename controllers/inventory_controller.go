@@ -227,3 +227,44 @@ func DispenseChemical(c *gin.Context) {
 		"dispensed_details": dispensedDetails,
 	})
 }
+
+// โครงสร้างข้อมูลสำหรับส่งกลับไปให้หน้าเว็บ (แบบละเอียด)
+type LotDetailResponse struct {
+	ChemicalCode   string  `json:"chemical_code"`
+	Name           string  `json:"name"`
+	BatchNumber    string  `json:"batch_number"`
+	QuantityRemain float64 `json:"quantity_remain"`
+	BaseUnit       string  `json:"base_unit"`
+	ExpirationDate string  `json:"expiration_date"`
+}
+
+// ฟังก์ชันดึงข้อมูลรายล็อต
+func GetInventoryLots(c *gin.Context) {
+	if err := configs.ConnectDatabase(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "DB Connection Failed"})
+		return
+	}
+
+	var results []LotDetailResponse
+	// ใช้ SQL JOIN ดึงชื่อสารเคมีมาประกบกับเลขล็อต และเอาเฉพาะที่ยังมีของอยู่ (>0)
+	query := `
+		SELECT 
+			c.chemical_code, 
+			c.name, 
+			i.batch_number, 
+			i.quantity_remain, 
+			c.base_unit, 
+			TO_CHAR(i.expiration_date, 'YYYY-MM-DD') as expiration_date
+		FROM inventory_lots i
+		JOIN chemicals c ON i.chemical_id = c.id
+		WHERE i.quantity_remain > 0
+		ORDER BY c.chemical_code ASC, i.expiration_date ASC
+	`
+	
+	if err := configs.DB.Raw(query).Scan(&results).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ดึงข้อมูลล้มเหลว"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": results})
+}
